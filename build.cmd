@@ -46,4 +46,4 @@ zip -r ../dist/vpnConnect_%version2%.zip ./vpnConnect*.exe ./res/ ../README.md
 
 
 
-pause
+rem pause
