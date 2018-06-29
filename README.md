@@ -1,2 +1,9 @@
 # vpnConnect
-Helper tool for connecting to VPN in IT-Services
+Helper tool for connecting to VPN at IT-Services (ITSH)
+
+Na jó, inkább magyarul, a célközönség úgyis helyi. :)
+
+
+
+
+
