@@ -199,11 +199,12 @@ Func disconnect()
 
 EndFunc
 
-Func connect()
-	disconnect()
-	msg("connect() entering")
+Func connect_vpn()
 	if $vpnClientMode = $VPN_GRAPHICAL Then
 		;Start GUI
+
+
+
 		msg("connect() running vpnui.exe")
 		$pid = Run( $clientRoot & "\vpnui.exe", "" )
 		If $pid = 0 Then
@@ -295,12 +296,11 @@ Func connect()
 		Sleep(900000)
 		; TODO: to be implement
 	EndIf
-
 	u_processClose("Viber.exe")
 	; u_processClose("Dropbox.exe")
 
 	; TODO: instead of fix waiting, wait for text "Compliant." on this window:
-	msg( "connect() Waiting for 50 seconds... " & $winTitle )
+	msg( "connect() Waiting 50 seconds... " & $winTitle )
 	sleep(50*1000); 50s
 	$winTitle = "Cisco AnyConnect Secure Mobility Client"
 	msg("connect() activating " & $winTitle )
@@ -337,18 +337,29 @@ Func connect()
 		myend()
 	EndIf
 
-	; OUTLOOK -->
-	msg("Starting Outlook")
-	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", '.', @SW_MINIMIZE, $STDOUT_CHILD )
-	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
-	WinSetState($hWnd, "", @SW_MINIMIZE)
-	
-	Sleep(5000)
+EndFunc
+
+
+Func connect()
+	disconnect()
+	msg("connect() entering")
+
+	connect_vpn()
+	startOutlook()
 	startJabber()
 	refreshStatusIcons()
 	msg("connect() returning")
 
 EndFunc
+
+Func startOutlook()
+	; OUTLOOK -->
+	msg("Starting Outlook")
+	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", '.', @SW_MINIMIZE, $STDOUT_CHILD )
+	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
+	WinSetState($hWnd, "", @SW_MINIMIZE)
+	Sleep(5000)
+ndFunc
 
 Func startJabber()
 
