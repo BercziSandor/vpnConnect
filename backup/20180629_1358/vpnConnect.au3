@@ -359,7 +359,7 @@ Func startOutlook()
 	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
 	WinSetState($hWnd, "", @SW_MINIMIZE)
 	Sleep(5000)
-endFunc
+ndFunc
 
 Func startJabber()
 

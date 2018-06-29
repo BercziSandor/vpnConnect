@@ -26,11 +26,9 @@ copy /Y *.au3 .\backup\%version2%\
 del .\bin\%APP%.exe
 echo Building %APP%: version: %version%... (Console)
 %Aut2Exe% /in .\%APP%.au3 /out bin/%APP%.exe 		/console /icon	.\res\Disconnect.ico /pack /companyname "IT-Services Kft." /productversion "%version%"
-
-rem GUI
-rem del .\bin\%APP%_gui.exe
-rem echo Building %APP%: version: %version%... (GUI)
-rem %Aut2Exe% /in .\%APP%.au3 /out bin/%APP%_gui.exe	/gui	/icon	.\res\Disconnect.ico /pack /companyname "IT-Services Kft." /productversion "%version%"
+del .\bin\%APP%_gui.exe
+echo Building %APP%: version: %version%... (GUI)
+%Aut2Exe% /in .\%APP%.au3 /out bin/%APP%_gui.exe	/gui	/icon	.\res\Disconnect.ico /pack /companyname "IT-Services Kft." /productversion "%version%"
 
 mkdir .\bin\res\
 copy /Y .\res\*.* .\bin\res\
