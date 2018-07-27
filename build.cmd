@@ -36,14 +36,11 @@ mkdir .\bin\res\
 copy /Y .\res\*.* .\bin\res\
 
 echo Creating distribution files
+mkdir dist
 if exist ./dist/vpnConnect_%version2%.zip (
 	rm ./dist/vpnConnect_%version2%.zip
 )
 cd bin
 zip -r ../dist/vpnConnect_%version2%.zip ./vpnConnect*.exe ./res/ ../README.md
-
-
-
-
 
 rem pause

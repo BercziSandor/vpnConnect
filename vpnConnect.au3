@@ -1,13 +1,14 @@
 #AutoIt3Wrapper_Change2CUI=y
 
-#include <Inet.au3>
+#include <ButtonConstants.au3>
 #include <Crypt.au3>
+#include <EditConstants.au3>
 #include <GUIConstantsEx.au3>
 #include <GuiToolbar.au3>
-#include <WindowsConstants.au3>
-#include <ButtonConstants.au3>
-#include <EditConstants.au3>
+#include <Inet.au3>
+#include <String.au3>
 #include <WinAPIDiag.au3>
+#include <WindowsConstants.au3>
 
 FileGetVersion(@ScriptFullPath)
 FileGetVersion(@ScriptName)
@@ -24,6 +25,19 @@ Global $VPN_CONSOLE         = 0
 Global $VPN_GRAPHICAL       = 1
 Global $statusWindowTimeout = 1
 Global $vpnClientMode       = $VPN_GRAPHICAL
+Global $ENC_Algorithm       = $CALG_AES_256
+
+Global $Windows_password
+Global $TIKS_pin
+Global $Outlook_start
+Global $Outlook_path
+Global $Jabber_start
+Global $Jabber_path
+Global $Jabber_loginEmail
+Global $Jabber_loginPassword
+Global $CiscoAnyConnect_path
+Global $CiscoAnyConnect_vpncli_path
+Global $CiscoAnyConnect_vpnui_path
 
 Global $warningSoundFile = @WindowsDir & "\media\Windows Information Bar.wav"
 $warningSoundFile = @WindowsDir & "\media\Windows Startup.wav"
@@ -40,9 +54,9 @@ Global $NET_STATE_UNKNOWN         = "unknown"
 Global $sMessage                  = ""
 Global $clientRoot                = "C:\Program Files (x86)\Cisco\Cisco AnyConnect Secure Mobility Client"
 
-Global $pwTiks ;tiks
-Global $pwWindows ;win
-Global $pwEmail ;email
+; Global $TIKS_pin ;tiks
+; Global $Windows_password ;win
+; Global $Jabber_loginEmail ;email
 Global $startTimeStamp= @YEAR & @MON & @MDAY & "_" & @MIN & @SEC
 Global $hFileLog = -1
 
@@ -74,6 +88,8 @@ Func help()
 EndFunc
 
 Func ini()
+
+	loadIni()
 
 	; msg("ini() entering")
 	Local $hTimer = TimerInit()
@@ -127,44 +143,120 @@ Func myend()
 
 EndFunc
 
-Func loadPWs()
-	Local $data
-	Local $pass
-	$sep = "×"
-	$Algorithm = $CALG_AES_256
+Func encode($data, $pw)
+	$data = StringToBinary($data)
+	$enc = _Crypt_EncryptData($data, $pw, $ENC_Algorithm)
+	$enc = _StringToHex($enc)
+	return $enc
+EndFunc
+
+Func decode($data, $pw)
+
+	Local $hKey = _Crypt_DeriveKey($pw, $ENC_Algorithm) ; Declare a password string and algorithm to create a cryptographic key.
+	$data=_HexToString($data)
+	$dec = _Crypt_DecryptData($data, $pw, $ENC_Algorithm)
+	if $dec == "-1" Then
+		msgBBox( "Wrong password. Try again." )
+		myend()
+	EndIf
+	$dec = BinaryToString($dec)
+
+	return $dec
+EndFunc
+
+
+
+
+Func loadIni()
 	$iniFile = @ScriptDir & "\vpnConnect.ini"
 	if FileExists($iniFile) Then
-		$data= FileRead($iniFile)
 		$pass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
 		if $pass == "" or @error <> 0 Then
 			msgBBox( "No password gived, exiting." )
 			myend()
 		EndIf
+		$Windows_password = decode(IniRead ( $iniFile, "Windows", "password", "" ), $pass)
+		$TIKS_pin = decode(IniRead ( $iniFile, "TIKS", "PIN", "" ), $pass)
+		$Jabber_loginPassword = $Windows_password
 
-		$data_bin = _Crypt_DecryptData( $data, $pass, $Algorithm );
-		if $data_bin == "-1" Then
-			msgBBox( "Wrong password. Delete "&$iniFile&" and try again." )
+		; DEBUG
+		msgBBox( "Windows_password: [" & $Windows_password &"]" )
+		msgBBox( "TIKS_pin: [" & $TIKS_pin &"]" )
+
+		$Outlook_start = IniRead ( $iniFile, "Outlook", "start", "true" )
+		$Outlook_path = IniRead ( $iniFile, "Outlook", "path", EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE" )
+		$Jabber_start = IniRead ( $iniFile, "Jabber", "start", "true" )
+		$Jabber_path = IniRead ( $iniFile, "Jabber", "path", EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
+		$Jabber_loginEmail = IniRead ( $iniFile, "Jabber", "loginEmail", "@t-systems.com" )
+		$CiscoAnyConnect_dir_path = IniRead ( $iniFile, "Cisco AnyConnect", "dir.path", EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client" )
+		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "\vnpcli.exe"
+		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "\vnpui.exe"
+
+		If Not FileExists($Jabber_path) Then
+			msgBBox( "File " & $Jabber_path & " does not exist, aborting." )
 			myend()
-		Else
-			$data_decr = BinaryToString($data_bin)
-			$splitted = StringSplit( $data_decr, $sep )
-			$pwTiks = $splitted[1]
-			$pwWindows = $splitted[2]
-			$pwEmail = $splitted[3]
+		EndIf
+
+		If Not FileExists($Outlook_path) Then
+			msgBBox( "File " & $Outlook_path & " does not exist, aborting." )
+			myend()
+		EndIf
+
+		If Not FileExists($CiscoAnyConnect_vpncli_path) Then
+			msgBBox( "File " & $CiscoAnyConnect_vpncli_path & " does not exist, aborting." )
+			myend()
+		EndIf
+
+		If Not FileExists($CiscoAnyConnect_vpnui_path) Then
+			msgBBox( "File " & $CiscoAnyConnect_vpnui_path & " does not exist, aborting." )
+			myend()
 		EndIf
 	Else
-		$pwTiks = InputBox( "Enter TIKS PIN", "Please type PIN for TIKS card.",     "", "*" )
-		$pwWindows = InputBox( "Enter password", "Please type the password for Windows login.", "", "*" )
-		$pwEmail = InputBox( "Enter email", "Please type your email .", "Sandor.Berczi@t-systems.com" )
-		$data_decr = StringToBinary( $pwTiks & $sep & $pwWindows & $sep & $pwEmail )
-		if MsgBox( $MB_YESNO, "", "May I save the to an encrypted file?", 10 ) = $IDYES Then
-			$pass = InputBox( "Enter password", "Please type the password for the ini file.",  "", "*" )
-			$data = _Crypt_EncryptData( $data_decr, $pass, $Algorithm )
-			FileWrite( $iniFile, $data )
-			msg("loadPWs(): ini file saved")
+		IniWrite ( $iniFile, "Outlook", "start", "true" )
+		$errorText=""
+
+		$Outlook_path=EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE"
+		If Not FileExists($Outlook_path) Then
+			$Outlook_path &= " ???"
+			$errorText &= "Outlook was not found, please correct it's path; "
 		EndIf
-	EndIf;
-  EndFunc
+		IniWrite ( $iniFile, "Outlook", "path", $Outlook_path )
+
+		$Jabber_path=EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe"
+		If Not FileExists($Jabber_path) Then
+			$Jabber_path &= " ???"
+			$errorText &= "Jabber was not found, please correct it's path; "
+		EndIf
+		IniWrite ( $iniFile, "Jabber", "path", $Jabber_path )
+
+		$CiscoAnyConnect_dir_path=EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client"
+		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "/vnpcli.exe"
+		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "/vnpui.exe"
+		If Not FileExists($CiscoAnyConnect_dir_path) Then
+			$CiscoAnyConnect_dir_path &= " ???"
+			$errorText &= "Cisco AnyconnectJabber was not found, please correct it's path; "
+		EndIf
+		IniWrite ( $iniFile, "Cisco AnyConnect", "dir.path", $CiscoAnyConnect_dir_path )
+
+		IniWrite ( $iniFile, "Jabber", "start", "true" )
+
+		$Jabber_loginEmail = InputBox( "Enter email", "Please type your email .", "Sandor.Berczi@t-systems.com" )
+		IniWrite ( $iniFile, "Jabber", "loginEmail", $Jabber_loginEmail )
+
+		$TIKS_pin = InputBox( "Enter TIKS PIN", "Please type PIN for TIKS card.",     "", "*" )
+		$Windows_password = InputBox( "Enter password", "Please type the password for Windows login.", "", "*" )
+		If MsgBox( $MB_YESNO, "", "May I save the encrypted passwords to a file?", 10 ) = $IDYES Then
+			$pass = InputBox( "Enter password", "Please type the password for the ini file.",  "", "*" )
+			IniWrite ( $iniFile, "Windows", "password", encode($Windows_password, $pass))
+			IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin, $pass))
+		EndIf
+		If ( $errorText <> "" ) Then
+			msgBBox( "Error occured: " & $errorText & ". Check ini file and try againAborting." )
+			myend()
+		EndIf
+	EndIf
+
+EndFunc
 
 
 ; Disconnecting VPN, exit GUI
@@ -178,8 +270,8 @@ Func disconnect()
 		ProcessClose("vpnui.exe")
 		msg("VPN connection closed. (" & Round(TimerDiff($hTimer) / 1000, 1) & "s )")
 	EndIf
-	refreshStatusIcons()
-	removeOldIconsFromTray()
+	u_refreshStatusIcons()
+	u_removeOldIconsFromTray()
 
 	If ProcessExists("CiscoJabber.exe") Then
 		Local $hTimer = TimerInit()
@@ -227,15 +319,15 @@ Func connect_vpn()
 		; ablak abs koord: 564,261
 		; button abs center:1113,494
 		;  -> button rel center:549,233
-		; clickOnWindow( $winTitle, 549, 233 ) ; 2016.10.01
-		; clickOnWindow( $winTitle, 509, 195 ) ; 2016.11.10
+		; u_clickOnWindow( $winTitle, 549, 233 ) ; 2016.10.01
+		; u_clickOnWindow( $winTitle, 509, 195 ) ; 2016.11.10
 
 		;------------------------------------------------------
 		; SmartCard pin
 		$winTitle = "Windows Security"
 		$winHandle = u_activateWindow($winTitle,"")
-		if (StringLen ( $pwTiks ) > 0 ) Then
-			Send( $pwTiks & "{ENTER}" )
+		if (StringLen ( $TIKS_pin ) > 0 ) Then
+			Send( $TIKS_pin & "{ENTER}" )
 		Else
 			Send("2222{BS}{BS}{BS}{BS}")
 			SoundPlay( $warningSoundFile, 1 )
@@ -246,8 +338,8 @@ Func connect_vpn()
 		;------------------------------------------------------
 		$winTitle = "Cisco AnyConnect | "
 		$winHandle = u_activateWindow($winTitle,"")
-		if (StringLen ( $pwWindows ) > 0 ) Then
-			Send( $pwWindows & "{ENTER}" )
+		if (StringLen ( $Windows_password ) > 0 ) Then
+			Send( $Windows_password & "{ENTER}" )
 		Else
 			Send("2222{BS}{BS}{BS}{BS}")
 			SoundPlay( $warningSoundFile, 1 )
@@ -272,8 +364,8 @@ Func connect_vpn()
 		; SmartCard pin
 		$winTitle = "Windows Security"
 		$winHandle = u_activateWindow($winTitle,"")
-		if (StringLen ( $pwTiks ) > 0 ) Then
-			Send( $pwTiks & "{ENTER}" )
+		if (StringLen ( $TIKS_pin ) > 0 ) Then
+			Send( $TIKS_pin & "{ENTER}" )
 		Else
 			Send("2222{BS}{BS}{BS}{BS}")
 			SoundPlay( $warningSoundFile, 1 )
@@ -286,8 +378,8 @@ Func connect_vpn()
 
 		; Please enter your username and password.
 		$winHandle = u_activateWindow($pid,"")
-		if (StringLen ( $pwWindows ) > 0 ) Then
-			Send( $pwWindows & "{ENTER}" )
+		if (StringLen ( $Windows_password ) > 0 ) Then
+			Send( $Windows_password & "{ENTER}" )
 		Else
 			Send("2222{BS}{BS}{BS}{BS}")
 			SoundPlay( $warningSoundFile, 1 )
@@ -347,7 +439,7 @@ Func connect()
 	connect_vpn()
 	startOutlook()
 	startJabber()
-	refreshStatusIcons()
+	u_refreshStatusIcons()
 	msg("connect() returning")
 
 EndFunc
@@ -365,17 +457,18 @@ Func startJabber()
 
 
 	; JABBER -->
+	msg("Starting Jabber")
 	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
 	$winTitle = "Cisco Jabber"
 	$winHandle = u_activateWindow($winTitle,"")
 
-	if ( 1 < 2 ) Then
+	if ( 1 > 2 ) Then
 		; Loading content...
 		Sleep(5000)
 
 		msg("Selecting email authentication...")
-		; clickOnWindow( $winTitle, 150, 333 )
-		clickOnWindow( $winTitle, 300, 300 )
+		; u_clickOnWindow( $winTitle, 150, 333 )
+		u_clickOnWindow( $winTitle, 300, 300 )
 		Send( "{TAB}{TAB}^{ENTER}" )
 
 		; Loading content...
@@ -383,9 +476,9 @@ Func startJabber()
 
 		msg("Entering email, pw...")
 		Send( "{TAB}" )
-		if (StringLen ( $pwEmail ) > 0 ) Then
-			Send( $pwEmail & "{TAB}" )
-			Send( $pwWindows & "{TAB}{ENTER}" )
+		if (StringLen ( $Jabber_loginEmail ) > 0 ) Then
+			Send( $Jabber_loginEmail & "{TAB}" )
+			Send( $Windows_password & "{TAB}{ENTER}" )
 		Else
 			Send("2222{BS}{BS}{BS}{BS}")
 			SoundPlay( $warningSoundFile, 1 )
@@ -400,7 +493,7 @@ Func startJabber()
 		; 	msg("Mouse x, y:" & $aPos[0] & ", " & $aPos[1])
 		; 	Sleep(500)
 		; WEnd
-		clickOnWindow( $winTitle, 68, 426 )
+		u_clickOnWindow( $winTitle, 68, 426 )
 	EndIf
 
 
@@ -409,31 +502,10 @@ EndFunc
 
 Func reconnect()
 	msg("reconnect() entering")
-	loadPWs()
 	connect()
-	refreshStatusIcons()
+	u_refreshStatusIcons()
 	msg("reconnect() returning")
 
-EndFunc
-
-
-
-Func refreshStatusIcons()
-	return
-	Local $status_net, $status_vpn
-	$status_vpn=get_VPN_state()
-	If $status_vpn = $VPN_STATE_CONNECTED Then
-		GUICtrlSetImage($gui_icon_net, "netcenter.dll", -5) ; ok
-		GUICtrlSetImage($gui_icon_vpn, @ScriptDir & "\res\vpn_connected.ico")
-	Else
-		GUICtrlSetImage($gui_icon_vpn, @ScriptDir & "\res\vpn_error.ico")
-		$status_net=get_NET_state()
-		If $status_net == $NET_STATE_CONNECTED_ITSH or $status_net == $NET_STATE_CONNECTED_OTHER  Then
-			GUICtrlSetImage($gui_icon_net, "netcenter.dll", -5) ; ok
-		Else
-			GUICtrlSetImage($gui_icon_net, "netcenter.dll", -6) ; error
-		EndIf
-	EndIf
 EndFunc
 
 
@@ -442,10 +514,10 @@ Func main()
 	Local $fullTimer = TimerInit()
 	msg("main() entering")
 
-	Local $netState = get_NET_state()
+	Local $netState = u_get_NET_state()
 	Local $vpnState = get_VPN_state()
-	refreshStatusIcons()
-	removeOldIconsFromTray()
+	u_refreshStatusIcons()
+	u_removeOldIconsFromTray()
 	If $vpnState == $VPN_STATE_CONNECTED Then
 		Local $buttonPressed = MsgBox( $MB_YESNOCANCEL, "Question", "You are connected to VPN. Do you want to reconnect?" & @CRLF & "yes: reconnect, no: disconnect, cancel: do nothing" );
 		If $buttonPressed = $IDYES Then
@@ -467,7 +539,7 @@ Func main()
 			msg("You are in the LAN environment, right?")
 			msg("So, you don't need to connect to the VPN. Exiting")
 			disconnect()
-			refreshStatusIcons()
+			u_refreshStatusIcons()
 			sleep(5000)
 		Else
 		EndIf
@@ -501,8 +573,27 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Generic utility functions
 
-Func get_NET_state()
-	msg("get_NET_state() entering")
+Func u_refreshStatusIcons()
+	return
+	Local $status_net, $status_vpn
+	$status_vpn=get_VPN_state()
+	If $status_vpn = $VPN_STATE_CONNECTED Then
+		GUICtrlSetImage($gui_icon_net, "netcenter.dll", -5) ; ok
+		GUICtrlSetImage($gui_icon_vpn, @ScriptDir & "\res\vpn_connected.ico")
+	Else
+		GUICtrlSetImage($gui_icon_vpn, @ScriptDir & "\res\vpn_error.ico")
+		$status_net=u_get_NET_state()
+		If $status_net == $NET_STATE_CONNECTED_ITSH or $status_net == $NET_STATE_CONNECTED_OTHER  Then
+			GUICtrlSetImage($gui_icon_net, "netcenter.dll", -5) ; ok
+		Else
+			GUICtrlSetImage($gui_icon_net, "netcenter.dll", -6) ; error
+		EndIf
+	EndIf
+EndFunc
+
+
+Func u_get_NET_state()
+	msg("u_get_NET_state() entering")
 	Local $retval=$NET_STATE_UNKNOWN
 	If (_WinAPI_IsNetworkAlive() <> 0) Then
 		If ( get_VPN_state() == $VPN_STATE_CONNECTED ) Then
@@ -514,7 +605,7 @@ Func get_NET_state()
 		$retval=$NET_STATE_DISCONNECTED
 	EndIf
 
-	msg("get_NET_state() returning")
+	msg("u_get_NET_state() returning")
 	return $retval
 EndFunc
 
@@ -566,12 +657,12 @@ EndFunc
 
 Func winInfo($winTitle)
 	$handle=u_activateWindow($winTitle,"")
-	handleInfo($handle)
+	u_handleInfo($handle)
 	; u_showWithMouse_Window($winTitle)
 	; u_showWithMouse_Window($winTitle)
 EndFunc
 
-Func handleInfo($handle)
+Func u_handleInfo($handle)
 	$pos = WinGetPos($handle)
 	$x=$pos[0]
 	$y=$pos[1]
@@ -584,7 +675,7 @@ Func getButtonHandle( $winTitle, $buttonName)
 	return ControlGetHandle( $winTitle, '', $buttonName )
 EndFunc
 
-Func clickOnWindow( $winTitle,$dx,$dy)
+Func u_clickOnWindow( $winTitle,$dx,$dy)
 	Opt("MouseCoordMode", 1) ;1=absolute, 0=relative, 2=client
 	$lastMousePos= MouseGetPos()
 
@@ -731,7 +822,7 @@ Func msg($ls_msg)
 
 EndFunc
 
-Func removeOldIconsFromTray()
+Func u_removeOldIconsFromTray()
 
 	$hSysTray = ControlGetHandle('[Class:Shell_TrayWnd]', '', '[Class:ToolbarWindow32;Instance:1]')
 	$hSysTrayPos = WinGetPos($hSysTray)
