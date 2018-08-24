@@ -422,12 +422,12 @@ Func connect_vpn()
 		$i = $i + 1
 		Sleep(1000)
 	WEnd
-
+	
 	; TODO: minimize anyconnect
 	; WinSetState($handleCiscoAnyConnect, "", @SW_MINIMIZE)
 	; try
 	WinClose($handleCiscoAnyConnect)
-
+	
 	Local $vpnState = $VPN_STATE_DISCONNECTED
 	msg("Checking for connection state...")
 	Local $i = 0
@@ -459,10 +459,10 @@ EndFunc
 Func startOutlook()
 	; OUTLOOK -->
 	msg("Starting Outlook")
-	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", "", @SW_SHOWMAXIMIZED )
+	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", '.', @SW_MINIMIZE, $STDOUT_CHILD )
 	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
 	WinSetState($hWnd, "", @SW_MINIMIZE)
-	Sleep(2000)
+	Sleep(5000)
 endFunc
 
 Func startJabber()
@@ -470,15 +470,11 @@ Func startJabber()
 
 	; JABBER -->
 	msg("Starting Jabber")
-	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe", "", @SW_SHOWMAXIMIZED )
-	Local $hWnd = WinWait("Cisco Jabber", "", 10)
-	WinSetState($hWnd, "", @SW_MINIMIZE)
-	Sleep(2000)
+	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
+	$winTitle = "Cisco Jabber"
+	$winHandle = u_activateWindow($winTitle,"")
 
 	if ( 1 > 2 ) Then
-  	$winTitle = "Cisco Jabber"
-		$winHandle = u_activateWindow($winTitle,"")
-
 		; Loading content...
 		Sleep(5000)
 

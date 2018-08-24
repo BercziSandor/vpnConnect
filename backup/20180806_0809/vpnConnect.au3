@@ -89,6 +89,7 @@ EndFunc
 
 Func ini()
 
+	loadIni()
 
 	; msg("ini() entering")
 	Local $hTimer = TimerInit()
@@ -125,7 +126,6 @@ Func ini()
 		   Return False
 		EndIf
 	EndIf
-	loadIni()
 
 	msg("ini(): returning (" & Round(TimerDiff($hTimer) / 1000, 1) & "s )")
 
@@ -189,39 +189,31 @@ Func loadIni()
 		$Jabber_path = IniRead ( $iniFile, "Jabber", "path", EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
 		$Jabber_loginEmail = IniRead ( $iniFile, "Jabber", "loginEmail", "@t-systems.com" )
 		$CiscoAnyConnect_dir_path = IniRead ( $iniFile, "Cisco AnyConnect", "dir.path", EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client" )
-		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "\vpncli.exe"
-		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "\vpnui.exe"
+		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "\vnpcli.exe"
+		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "\vnpui.exe"
 
 		If Not FileExists($Jabber_path) Then
 			msgBBox( "File '" & $Jabber_path & "' does not exist, aborting." )
 			msg("File '" & $Jabber_path & "' does not exist, aborting.")
 			myend()
-		Else
-			msg("Checking Jabber    - OK")
 		EndIf
 
 		If Not FileExists($Outlook_path) Then
 			msgBBox( "File '" & $Outlook_path & "' does not exist, aborting." )
 			msg("File '" & $Outlook_path & "' does not exist, aborting.")
 			myend()
-		Else
-			msg("Checking Outlook   - OK")
 		EndIf
 
 		If Not FileExists($CiscoAnyConnect_vpncli_path) Then
 			msgBBox( "File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting." )
 			msg("File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting.")
 			myend()
-		Else
-			msg("Checking Cisco cli - OK")
 		EndIf
 
 		If Not FileExists($CiscoAnyConnect_vpnui_path) Then
 			msgBBox( "File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting." )
 			msg("File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting.")
 			myend()
-		Else
-			msg("Checking Cisco gui - OK")
 		EndIf
 	Else
 		IniWrite ( $iniFile, "Outlook", "start", "true" )
@@ -242,8 +234,8 @@ Func loadIni()
 		IniWrite ( $iniFile, "Jabber", "path", $Jabber_path )
 
 		$CiscoAnyConnect_dir_path=EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client"
-		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "/vpncli.exe"
-		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "/vpnui.exe"
+		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "/vnpcli.exe"
+		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "/vnpui.exe"
 		If Not FileExists($CiscoAnyConnect_dir_path) Then
 			$CiscoAnyConnect_dir_path &= " ???"
 			$errorText &= "Cisco AnyconnectJabber was not found, please correct it's path; "
@@ -422,12 +414,12 @@ Func connect_vpn()
 		$i = $i + 1
 		Sleep(1000)
 	WEnd
-
+	
 	; TODO: minimize anyconnect
 	; WinSetState($handleCiscoAnyConnect, "", @SW_MINIMIZE)
 	; try
 	WinClose($handleCiscoAnyConnect)
-
+	
 	Local $vpnState = $VPN_STATE_DISCONNECTED
 	msg("Checking for connection state...")
 	Local $i = 0
@@ -459,10 +451,10 @@ EndFunc
 Func startOutlook()
 	; OUTLOOK -->
 	msg("Starting Outlook")
-	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", "", @SW_SHOWMAXIMIZED )
+	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", '.', @SW_MINIMIZE, $STDOUT_CHILD )
 	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
 	WinSetState($hWnd, "", @SW_MINIMIZE)
-	Sleep(2000)
+	Sleep(5000)
 endFunc
 
 Func startJabber()
@@ -470,15 +462,11 @@ Func startJabber()
 
 	; JABBER -->
 	msg("Starting Jabber")
-	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe", "", @SW_SHOWMAXIMIZED )
-	Local $hWnd = WinWait("Cisco Jabber", "", 10)
-	WinSetState($hWnd, "", @SW_MINIMIZE)
-	Sleep(2000)
+	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
+	$winTitle = "Cisco Jabber"
+	$winHandle = u_activateWindow($winTitle,"")
 
 	if ( 1 > 2 ) Then
-  	$winTitle = "Cisco Jabber"
-		$winHandle = u_activateWindow($winTitle,"")
-
 		; Loading content...
 		Sleep(5000)
 
