@@ -29,6 +29,7 @@ Global $ENC_Algorithm       = $CALG_AES_256
 
 Global $Windows_password
 Global $TIKS_pin
+Global $iniPass
 Global $Outlook_start
 Global $Outlook_path
 Global $Jabber_start
@@ -36,12 +37,15 @@ Global $Jabber_path
 Global $Jabber_loginEmail
 Global $Jabber_loginPassword
 Global $CiscoAnyConnect_path
+Global $CiscoAnyConnect_dir_path
 Global $CiscoAnyConnect_vpncli_path
 Global $CiscoAnyConnect_vpnui_path
 
 Global $warningSoundFile = @WindowsDir & "\media\Windows Information Bar.wav"
 $warningSoundFile = @WindowsDir & "\media\Windows Startup.wav"
 $warningSoundFile = @WindowsDir & "\media\Windows Pop-up Blocked.wav"
+
+Global $iniFile = @ScriptDir & "\vpnConnect.ini"
 
 ; CONSTANTS - DO NOT Change
 Global $VPN_STATE_CONNECTED       = "connected"
@@ -143,37 +147,46 @@ Func myend()
 
 EndFunc
 
-Func encode($data, $pw)
+Func encode($data)
+	if $iniPass == "" Then
+		$iniPass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
+	EndIf
+	if $iniPass == "" Then
+		msgBBox( "No password gived, exiting." )
+		myend()
+	EndIf
+
 	$data = StringToBinary($data)
-	$enc = _Crypt_EncryptData($data, $pw, $ENC_Algorithm)
+	$enc = _Crypt_EncryptData($data, $iniPass, $ENC_Algorithm)
 	$enc = _StringToHex($enc)
 	return $enc
 EndFunc
 
-Func decode($data, $pw)
+Func decode($data)
+	if $iniPass == "" Then
+		$iniPass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
+	EndIf
+	if $iniPass == "" Then
+		msgBBox( "No password gived, exiting." )
+		myend()
+	EndIf
 
-	Local $hKey = _Crypt_DeriveKey($pw, $ENC_Algorithm) ; Declare a password string and algorithm to create a cryptographic key.
+	Local $hKey = _Crypt_DeriveKey($iniPass, $ENC_Algorithm) ; Declare a password string and algorithm to create a cryptographic key.
 	$data=_HexToString($data)
-	$dec = _Crypt_DecryptData($data, $pw, $ENC_Algorithm)
+	$dec = _Crypt_DecryptData($data, $iniPass, $ENC_Algorithm)
 	if $dec == "-1" Then
 		msgBBox( "Wrong password. Try again." )
 		myend()
 	EndIf
 	$dec = BinaryToString($dec)
-
 	return $dec
 EndFunc
 
-
-
-
 Func iniLoad()
-	$iniFile = @ScriptDir & "\vpnConnect.ini"
 	$iniPass="";
 
 	if not FileExists($iniFile) Then
 		FileWrite ( $iniFile, "" )
-	Else
 	EndIf
 
 
@@ -182,12 +195,7 @@ Func iniLoad()
 	if $Windows_password == "" Then
 		$Windows_password = InputBox( "Enter password", "Please type the password for Windows login.", "", "*" )
 	Else
-		$iniPass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
-		if $iniPass == "" or @error <> 0 Then
-			msgBBox( "No password gived, exiting." )
-			myend()
-		EndIf
-		$Windows_password = decode($Windows_password, $iniPass)
+		$Windows_password = decode($Windows_password)
 	Endif
 
 
@@ -195,7 +203,7 @@ Func iniLoad()
 	if $TIKS_pin == "" Then
 		$TIKS_pin = InputBox( "Enter TIKS PIN", "Please type PIN for TIKS card.",     "", "*" )
 	Else
-		$TIKS_pin = decode($TIKS_pin, $iniPass)
+		$TIKS_pin = decode($TIKS_pin)
 	Endif
 
 	$Jabber_loginPassword = $Windows_password
@@ -245,6 +253,8 @@ Func iniLoad()
 	Else
 		msg("Checking Cisco gui - OK")
 	EndIf
+
+	iniSave()
 EndFunc
 
 Func iniSave()
@@ -258,12 +268,14 @@ Func iniSave()
 		If $iniPass == "" Then
 			If MsgBox( $MB_YESNO, "", "May I save the encrypted passwords to a file?", 10 ) = $IDYES Then
 				$iniPass = InputBox( "Enter password", "Please type the password for the ini file.",  "", "*" )
-				IniWrite ( $iniFile, "Windows", "password", encode($Windows_password, $iniPass))
-				IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin, $iniPass))
+				IniWrite ( $iniFile, "Windows", "password", encode($Windows_password))
+				IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin))
 			EndIf
 		EndIf
 
 EndFunc
+
+
 
 ; Disconnecting VPN, exit GUI
 Func disconnect()
