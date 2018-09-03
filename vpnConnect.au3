@@ -125,7 +125,7 @@ Func ini()
 		   Return False
 		EndIf
 	EndIf
-	loadIni()
+	iniLoad()
 
 	msg("ini(): returning (" & Round(TimerDiff($hTimer) / 1000, 1) & "s )")
 
@@ -167,107 +167,103 @@ EndFunc
 
 
 
-Func loadIni()
+Func iniLoad()
 	$iniFile = @ScriptDir & "\vpnConnect.ini"
-	if FileExists($iniFile) Then
-		$pass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
-		if $pass == "" or @error <> 0 Then
+	$iniPass="";
+
+	if not FileExists($iniFile) Then
+		FileWrite ( $iniFile, "" )
+	Else
+	EndIf
+
+
+
+	$Windows_password = IniRead ( $iniFile, "Windows", "password", "" )
+	if $Windows_password == "" Then
+		$Windows_password = InputBox( "Enter password", "Please type the password for Windows login.", "", "*" )
+	Else
+		$iniPass = InputBox( "Enter password", "Please type the password for the ini file.", "", "*" )
+		if $iniPass == "" or @error <> 0 Then
 			msgBBox( "No password gived, exiting." )
 			myend()
 		EndIf
-		$Windows_password = decode(IniRead ( $iniFile, "Windows", "password", "" ), $pass)
-		$TIKS_pin = decode(IniRead ( $iniFile, "TIKS", "PIN", "" ), $pass)
-		$Jabber_loginPassword = $Windows_password
+		$Windows_password = decode($Windows_password, $iniPass)
+	Endif
 
-		; DEBUG
-		; msgBBox( "Windows_password: [" & $Windows_password &"]" )
-		; msgBBox( "TIKS_pin: [" & $TIKS_pin &"]" )
 
-		$Outlook_start = IniRead ( $iniFile, "Outlook", "start", "true" )
-		$Outlook_path = IniRead ( $iniFile, "Outlook", "path", EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE" )
-		$Jabber_start = IniRead ( $iniFile, "Jabber", "start", "true" )
-		$Jabber_path = IniRead ( $iniFile, "Jabber", "path", EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
-		$Jabber_loginEmail = IniRead ( $iniFile, "Jabber", "loginEmail", "@t-systems.com" )
-		$CiscoAnyConnect_dir_path = IniRead ( $iniFile, "Cisco AnyConnect", "dir.path", EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client" )
-		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "\vpncli.exe"
-		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "\vpnui.exe"
-
-		If Not FileExists($Jabber_path) Then
-			msgBBox( "File '" & $Jabber_path & "' does not exist, aborting." )
-			msg("File '" & $Jabber_path & "' does not exist, aborting.")
-			myend()
-		Else
-			msg("Checking Jabber    - OK")
-		EndIf
-
-		If Not FileExists($Outlook_path) Then
-			msgBBox( "File '" & $Outlook_path & "' does not exist, aborting." )
-			msg("File '" & $Outlook_path & "' does not exist, aborting.")
-			myend()
-		Else
-			msg("Checking Outlook   - OK")
-		EndIf
-
-		If Not FileExists($CiscoAnyConnect_vpncli_path) Then
-			msgBBox( "File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting." )
-			msg("File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting.")
-			myend()
-		Else
-			msg("Checking Cisco cli - OK")
-		EndIf
-
-		If Not FileExists($CiscoAnyConnect_vpnui_path) Then
-			msgBBox( "File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting." )
-			msg("File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting.")
-			myend()
-		Else
-			msg("Checking Cisco gui - OK")
-		EndIf
-	Else
-		IniWrite ( $iniFile, "Outlook", "start", "true" )
-		$errorText=""
-
-		If Not FileExists($Outlook_path) Then
-			$Outlook_path &= " ???"
-			$errorText &= "Outlook was not found, please correct it's path; "
-		EndIf
-		IniWrite ( $iniFile, "Outlook", "path", $Outlook_path )
-
-		If Not FileExists($Jabber_path) Then
-			$Jabber_path &= " ???"
-			$errorText &= "Jabber was not found, please correct it's path; "
-		EndIf
-		IniWrite ( $iniFile, "Jabber", "path", $Jabber_path )
-
-		$CiscoAnyConnect_dir_path=EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client"
-		$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "/vpncli.exe"
-		$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "/vpnui.exe"
-		If Not FileExists($CiscoAnyConnect_dir_path) Then
-			$CiscoAnyConnect_dir_path &= " ???"
-			$errorText &= "Cisco AnyconnectJabber was not found, please correct it's path; "
-		EndIf
-		IniWrite ( $iniFile, "Cisco AnyConnect", "dir.path", $CiscoAnyConnect_dir_path )
-
-		IniWrite ( $iniFile, "Jabber", "start", "true" )
-
-		$Jabber_loginEmail = InputBox( "Enter email", "Please type your email .", "Sandor.Berczi@t-systems.com" )
-		IniWrite ( $iniFile, "Jabber", "loginEmail", $Jabber_loginEmail )
-
+	$TIKS_pin = IniRead ( $iniFile, "TIKS", "PIN", "" )
+	if $TIKS_pin == "" Then
 		$TIKS_pin = InputBox( "Enter TIKS PIN", "Please type PIN for TIKS card.",     "", "*" )
-		$Windows_password = InputBox( "Enter password", "Please type the password for Windows login.", "", "*" )
-		If MsgBox( $MB_YESNO, "", "May I save the encrypted passwords to a file?", 10 ) = $IDYES Then
-			$pass = InputBox( "Enter password", "Please type the password for the ini file.",  "", "*" )
-			IniWrite ( $iniFile, "Windows", "password", encode($Windows_password, $pass))
-			IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin, $pass))
-		EndIf
-		If ( $errorText <> "" ) Then
-			msgBBox( "Error occured: " & $errorText & ". Check ini file and try againAborting." )
-			myend()
-		EndIf
+	Else
+		$TIKS_pin = decode($TIKS_pin, $iniPass)
+	Endif
+
+	$Jabber_loginPassword = $Windows_password
+
+	$Outlook_start = IniRead ( $iniFile, "Outlook", "start", "true" )
+	$Outlook_path = IniRead ( $iniFile, "Outlook", "path", EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE" )
+	$Jabber_start = IniRead ( $iniFile, "Jabber", "start", "true" )
+	$Jabber_path = IniRead ( $iniFile, "Jabber", "path", EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe" )
+
+	$Jabber_loginEmail = IniRead ( $iniFile, "Jabber", "loginEmail", "@t-systems.com" )
+	if $Jabber_loginEmail == "@t-systems.com" Then
+		$Jabber_loginEmail = InputBox( "Enter email", "Please type your email .", "Sandor.Berczi@t-systems.com" )
 	EndIf
 
+	$CiscoAnyConnect_dir_path = IniRead ( $iniFile, "Cisco AnyConnect", "dir.path", EnvGet("ProgramFiles(x86)") & "\Cisco\Cisco AnyConnect Secure Mobility Client" )
+	$CiscoAnyConnect_vpncli_path = $CiscoAnyConnect_dir_path & "\vpncli.exe"
+	$CiscoAnyConnect_vpnui_path = $CiscoAnyConnect_dir_path & "\vpnui.exe"
+
+	If Not FileExists($Jabber_path) Then
+		msgBBox( "File '" & $Jabber_path & "' does not exist, aborting." )
+		msg("File '" & $Jabber_path & "' does not exist, aborting.")
+		myend()
+	Else
+		msg("Checking Jabber - OK")
+	EndIf
+
+	If Not FileExists($Outlook_path) Then
+		msgBBox( "File '" & $Outlook_path & "' does not exist, aborting." )
+		msg("File '" & $Outlook_path & "' does not exist, aborting.")
+		myend()
+	Else
+		msg("Checking Outlook   - OK")
+	EndIf
+
+	If Not FileExists($CiscoAnyConnect_vpncli_path) Then
+		msgBBox( "File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting." )
+		msg("File '" & $CiscoAnyConnect_vpncli_path & "' does not exist, aborting.")
+		myend()
+	Else
+		msg("Checking Cisco cli - OK")
+	EndIf
+
+	If Not FileExists($CiscoAnyConnect_vpnui_path) Then
+		msgBBox( "File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting." )
+		msg("File '" & $CiscoAnyConnect_vpnui_path & "' does not exist, aborting.")
+		myend()
+	Else
+		msg("Checking Cisco gui - OK")
+	EndIf
 EndFunc
 
+Func iniSave()
+		IniWrite ( $iniFile, "Outlook", "start", "true" )
+		IniWrite ( $iniFile, "Outlook", "path", $Outlook_path )
+		IniWrite ( $iniFile, "Jabber", "path", $Jabber_path )
+		IniWrite ( $iniFile, "Cisco AnyConnect", "dir.path", $CiscoAnyConnect_dir_path )
+		IniWrite ( $iniFile, "Jabber", "start", "true" )
+		IniWrite ( $iniFile, "Jabber", "loginEmail", $Jabber_loginEmail )
+
+		If $iniPass == "" Then
+			If MsgBox( $MB_YESNO, "", "May I save the encrypted passwords to a file?", 10 ) = $IDYES Then
+				$iniPass = InputBox( "Enter password", "Please type the password for the ini file.",  "", "*" )
+				IniWrite ( $iniFile, "Windows", "password", encode($Windows_password, $iniPass))
+				IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin, $iniPass))
+			EndIf
+		EndIf
+
+EndFunc
 
 ; Disconnecting VPN, exit GUI
 Func disconnect()
