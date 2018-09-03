@@ -227,14 +227,12 @@ Func loadIni()
 		IniWrite ( $iniFile, "Outlook", "start", "true" )
 		$errorText=""
 
-		$Outlook_path=EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE"
 		If Not FileExists($Outlook_path) Then
 			$Outlook_path &= " ???"
 			$errorText &= "Outlook was not found, please correct it's path; "
 		EndIf
 		IniWrite ( $iniFile, "Outlook", "path", $Outlook_path )
 
-		$Jabber_path=EnvGet("ProgramFiles(x86)") & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe"
 		If Not FileExists($Jabber_path) Then
 			$Jabber_path &= " ???"
 			$errorText &= "Jabber was not found, please correct it's path; "
@@ -457,20 +455,29 @@ Func connect()
 EndFunc
 
 Func startOutlook()
-	; OUTLOOK -->
+	if ($Outlook_start <> "true" ) Then
+		msg("Starting Outlook: skipping")
+		return
+	Endif
 	msg("Starting Outlook")
-	Run( @ProgramFilesDir & "\Microsoft Office\Office14\OUTLOOK.EXE", "", @SW_SHOWMAXIMIZED )
+
+	; Run( $Outlook_path, "", @SW_SHOWMAXIMIZED )
+	ShellExecute($Outlook_path)
+
 	Local $hWnd = WinWait("Microsoft Outlook", "", 10)
 	WinSetState($hWnd, "", @SW_MINIMIZE)
 	Sleep(2000)
 endFunc
 
 Func startJabber()
-
-
-	; JABBER -->
+	if ($Jabber_start <> "true" ) Then
+		msg("Starting Jabber: skipping")
+		return
+	Endif
 	msg("Starting Jabber")
-	Run( @ProgramFilesDir & "\Cisco Systems\Cisco Jabber\CiscoJabber.exe", "", @SW_SHOWMAXIMIZED )
+	; Run( $Jabber_path, "", @SW_SHOWMAXIMIZED )
+	ShellExecute($Jabber_path)
+
 	Local $hWnd = WinWait("Cisco Jabber", "", 10)
 	WinSetState($hWnd, "", @SW_MINIMIZE)
 	Sleep(2000)
@@ -511,8 +518,6 @@ Func startJabber()
 		; WEnd
 		u_clickOnWindow( $winTitle, 68, 426 )
 	EndIf
-
-
 EndFunc
 
 
