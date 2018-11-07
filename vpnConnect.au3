@@ -271,6 +271,9 @@ Func iniSave()
 				IniWrite ( $iniFile, "Windows", "password", encode($Windows_password))
 				IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin))
 			EndIf
+		Else
+			IniWrite ( $iniFile, "Windows", "password", encode($Windows_password))
+			IniWrite ( $iniFile, "TIKS", "PIN", encode($TIKS_pin))
 		EndIf
 
 EndFunc
@@ -330,7 +333,8 @@ Func connect_vpn()
 		; u_clickOnButtonOnWindow( $winTitle, "Button1" )
 
 		; 2: Keyboard
-		u_SendToWindow($handleCiscoAnyConnect, "{TAB}{TAB}{ENTER}")
+		; u_SendToWindow($handleCiscoAnyConnect, "{TAB}{TAB}{ENTER}")
+		u_SendToWindow($handleCiscoAnyConnect, "{ENTER}")
 
 		; 3:
 		; Bug (?) with this window: standard method does not work.
