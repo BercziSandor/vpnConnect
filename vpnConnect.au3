@@ -17,7 +17,8 @@ FileGetVersion(@ScriptName)
 $helpString = 'vpnConnect - Berczi Sandor' & @CRLF & _
 'Leiras: egyszeru AutoIt ( https://www.autoitscript.com/site/autoit/ ) script, amely megkonnyiti a VPN-hez valo kapcsolodast az It-Services berkein belul.' & @CRLF & _
 ' Egy, a script mellett levo file-ban a felhasznalo altal megadott jelszoval kodolva tarolja le a jelszavakat.' & @CRLF & _
-'  (Amennyiben a file nem letezik, bekeri a jelszavakat, majd letrehozza a titkositott file-t)'
+'  (Amennyiben a file nem letezik, bekeri a jelszavakat, majd letrehozza a titkositott file-t)' & @CRLF & _
+'  Jelszó változás: töröld ki az ini file-ból az értéket, a program kérni fogja a jelszót következő induláskor, majd letárolja'
 
 ; CONSTANTS
 Global $CONSOLE_MODE        = 1
@@ -34,6 +35,7 @@ Global $Outlook_start
 Global $Outlook_path
 Global $Jabber_start
 Global $Jabber_path
+Global $generic_logging
 Global $Jabber_loginEmail
 Global $Jabber_loginPassword
 Global $CiscoAnyConnect_path
@@ -72,10 +74,7 @@ Local $gui_log
 
 ; ----------------------------------------
 ; Entry point
-WinMinimizeAll ( )
 ini()
-WinSetState("vpnConnect", "", @SW_RESTORE )
-WinSetState("vpnConnect", "", @SW_SHOW)
 help()
 main()
 ; WinMinimizeAllUndo ( )
@@ -94,6 +93,7 @@ EndFunc
 Func ini()
 
 
+	WinMinimizeAll ( )
 	; msg("ini() entering")
 	Local $hTimer = TimerInit()
 	Opt( "SendKeyDelay", 100 )
@@ -130,6 +130,8 @@ Func ini()
 		EndIf
 	EndIf
 	iniLoad()
+	WinSetState("vpnConnect", "", @SW_RESTORE )
+	WinSetState("vpnConnect", "", @SW_SHOW)
 
 	msg("ini(): returning (" & Round(TimerDiff($hTimer) / 1000, 1) & "s )")
 
@@ -208,6 +210,7 @@ Func iniLoad()
 
 	$Jabber_loginPassword = $Windows_password
 
+	$generic_logging = IniRead ( $iniFile, "Generic", "loggingEnabled", "false" )
 	$Outlook_start = IniRead ( $iniFile, "Outlook", "start", "true" )
 	$Outlook_path = IniRead ( $iniFile, "Outlook", "path", EnvGet("ProgramFiles(x86)") & "\Microsoft Office\Office14\OUTLOOK.EXE" )
 	$Jabber_start = IniRead ( $iniFile, "Jabber", "start", "true" )
@@ -258,6 +261,7 @@ Func iniLoad()
 EndFunc
 
 Func iniSave()
+		IniWrite ( $iniFile, "Generic", "loggingEnabled", $generic_logging )
 		IniWrite ( $iniFile, "Outlook", "start", "true" )
 		IniWrite ( $iniFile, "Outlook", "path", $Outlook_path )
 		IniWrite ( $iniFile, "Jabber", "path", $Jabber_path )
