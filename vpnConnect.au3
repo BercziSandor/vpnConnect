@@ -855,7 +855,9 @@ Func msg($ls_msg)
 		Consolewrite($tTime & " " & $ls_msg & @CRLF)
 	Endif
 
-	FileWriteLine($hFileLog, $tTime & " " & $ls_msg)
+	If $generic_logging = 'true' Then
+		FileWriteLine($hFileLog, $tTime & " " & $ls_msg)
+	Endif
 
 EndFunc
 
