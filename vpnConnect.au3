@@ -418,8 +418,8 @@ Func connect_vpn()
 	; u_processClose("Dropbox.exe")
 
 	; TODO: instead of fix waiting, wait for text "Compliant." on this window:
-	msg( "connect() Waiting 50 seconds... " & $winTitle )
-	sleep(50*1000); 50s
+	msg( "connect() Waiting 20 seconds... " & $winTitle )
+	sleep(20*1000); 50s
 	$winTitle = "Cisco AnyConnect Secure Mobility Client"
 	msg("connect() activating " & $winTitle )
 	Local $i = 0
